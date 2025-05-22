@@ -1,0 +1,283 @@
+. Register a New User
+
+Method: POST
+
+URL: http://localhost:8080/api/auth/register
+
+Headers:
+
+Content-Type: application/json
+
+Body: (Select raw and JSON)
+
+{
+    "username": "testuser",
+    "email": "test@example.com",
+    "password": "password123"
+}
+Use code with caution.
+Json
+Expected Response:
+
+Status: 201 Created
+
+Body: JSON object representing the created user (without the password).
+
+2. Login as User
+
+Method: POST
+
+URL: http://localhost:8080/api/auth/login
+
+Headers:
+
+Content-Type: application/json
+
+Body: (Select raw and JSON)
+
+{
+    "username": "testuser",
+    "password": "password123"
+}
+Use code with caution.
+Json
+Expected Response:
+
+Status: 200 OK
+
+Body: JSON object containing the token, username, and role.
+
+{
+    "token": "eyJhbGciOiJIUzI1NiJ9...", // This is your User Token
+    "username": "testuser",
+    "role": "USER"
+}
+Use code with caution.
+Json
+Action: Copy the token value. You'll need it for subsequent requests. You can store it in a Postman environment variable called USER_TOKEN.
+
+3. Create and Login as Admin User (Manual Step Required)
+
+Challenge: The current registration endpoint creates users with the USER role by default. You need an ADMIN user to test admin endpoints.
+
+Solution (Choose One):
+
+a) Manual Database Update:
+
+Connect to your auth_schema database using MySQL Workbench or another client.
+
+Register a new user (e.g., "adminuser") via the /api/auth/register endpoint as shown in Step 1.
+
+Find the newly created user in the users table.
+
+Manually change their role column value from 'USER' to 'ADMIN'.
+
+Commit the change.
+
+b) Modify Code (Development Only): Temporarily modify the UserService::registerUser method to assign the ADMIN role under certain conditions (e.g., if username is "admin") for testing purposes. Remember to change this back!
+
+Login as Admin:
+
+Use the Login endpoint (Step 2) with the credentials of the user you designated as Admin.
+
+Action: Copy the received token. Store it in a Postman variable called ADMIN_TOKEN.
+
+4. Get All Events
+
+Method: GET
+
+URL: http://localhost:8080/api/events
+
+Headers:
+
+Authorization: Bearer <USER_TOKEN> (Replace <USER_TOKEN> with the token you got in Step 2)
+
+Body: None
+
+Expected Response:
+
+Status: 200 OK
+
+Body: A JSON array of event objects (will be empty initially).
+
+Note: This requires authentication because the JWT filter protects all non-public endpoints by default.
+
+5. Create an Event (Admin Only)
+
+Method: POST
+
+URL: http://localhost:8080/api/events
+
+Headers:
+
+Authorization: Bearer <ADMIN_TOKEN> (Use the Admin token!)
+
+Content-Type: application/json
+
+Body: (Select raw and JSON)
+
+{
+    "name": "Spring Boot Workshop",
+    "description": "Learn microservices with Spring Boot",
+    "startTime": "2024-09-20T14:00:00",
+    "endTime": "2024-09-20T17:00:00",
+    "location": "Virtual"
+}
+Use code with caution.
+Json
+Expected Response:
+
+Status: 201 Created
+
+Body: JSON object of the created event, including its new id.
+
+Action: Note the id of the created event for later tests. Let's assume it's 1.
+
+6. Get Event by ID
+
+Method: GET
+
+URL: http://localhost:8080/api/events/1 (Replace 1 with the actual event ID)
+
+Headers:
+
+Authorization: Bearer <USER_TOKEN> (Any valid token works here)
+
+Body: None
+
+Expected Response:
+
+Status: 200 OK
+
+Body: JSON object for the requested event.
+
+7. Register for an Event (User)
+
+Method: POST
+
+URL: http://localhost:8080/api/events/1/register (Replace 1 with the actual event ID)
+
+Headers:
+
+Authorization: Bearer <USER_TOKEN> (Use the User token)
+
+Body: None (The user info comes from the token via headers added by the gateway)
+
+Expected Response:
+
+Status: 201 Created
+
+Body: A confirmation message, e.g., {"message": "Successfully registered for event 1"}
+
+8. Try Registering Again (Should Fail)
+
+Repeat Step 7 exactly.
+
+Expected Response:
+
+Status: 400 Bad Request
+
+Body: An error message like "User already registered for this event".
+
+9. Get My Registered Events (User)
+
+Method: GET
+
+URL: http://localhost:8080/api/events/my-registrations
+
+Headers:
+
+Authorization: Bearer <USER_TOKEN> (Use the User token)
+
+Body: None
+
+Expected Response:
+
+Status: 200 OK
+
+Body: A JSON array containing the event(s) the user is registered for (e.g., the "Spring Boot Workshop").
+
+10. Update an Event (Admin Only)
+
+Method: PUT
+
+URL: http://localhost:8080/api/events/1 (Replace 1 with the actual event ID)
+
+Headers:
+
+Authorization: Bearer <ADMIN_TOKEN> (Use the Admin token!)
+
+Content-Type: application/json
+
+Body: (Select raw and JSON - provide updated details)
+
+{
+    "name": "Advanced Spring Boot Workshop",
+    "description": "Deeper dive into microservices",
+    "startTime": "2024-09-21T14:00:00",
+    "endTime": "2024-09-21T17:00:00",
+    "location": "Room 505"
+}
+Use code with caution.
+Json
+Expected Response:
+
+Status: 200 OK
+
+Body: JSON object of the updated event.
+
+11. Try Updating Event with User Token (Should Fail)
+
+Repeat Step 10, but use USER_TOKEN in the Authorization header.
+
+Expected Response:
+
+Status: 403 Forbidden (Because the Gateway route rule checks for the ADMIN role header for PUT)
+
+12. Delete an Event (Admin Only)
+
+Method: DELETE
+
+URL: http://localhost:8080/api/events/1 (Replace 1 with the actual event ID)
+
+Headers:
+
+Authorization: Bearer <ADMIN_TOKEN> (Use the Admin token!)
+
+Body: None
+
+Expected Response:
+
+Status: 204 No Content
+
+Body: Empty
+
+13. Try Deleting Event with User Token (Should Fail)
+
+Try deleting an existing event ID using the USER_TOKEN.
+
+Expected Response:
+
+Status: 403 Forbidden
+
+14. Try Accessing Protected Endpoint Without Token
+
+Try GET http://localhost:8080/api/events without any Authorization header.
+
+Expected Response:
+
+Status: 401 Unauthorized (Because the JWT filter requires a valid token)
+
+
+Strip Payment
+
+http://localhost:8080/api/payment/checkout
+
+{
+    "eventName": "Dance event",
+    "currency": "USD",
+    "noOfTicket": 2,
+    "price": 1000
+}
+
+Expected Response: URL for payment
